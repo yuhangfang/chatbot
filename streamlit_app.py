@@ -79,22 +79,21 @@ system_message = {
 }
 
 
-# Initialize message history with system personality if it's not already present
-if "messages" not in st.session_state:
-    st.session_state["messages"] = [system_message]
+# Check if API key is filled and AI has not greeted the user
+if openai_api_key and "greeted" not in st.session_state:
+    # Initialize OpenAI client
+    client = OpenAI(api_key=openai_api_key)
     
-    # If this is the first interaction, generate a dynamic greeting from the AI
-    if openai_api_key:
-        client = OpenAI(api_key=openai_api_key)
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo", 
-            messages=[system_message]  # Use only the system message for the first greeting
-        )
-        greeting_msg = response.choices[0].message.content
-        st.session_state["messages"].append({"role": "assistant", "content": greeting_msg})
-    else:
-        st.info("Please add your OpenAI API key to generate the greeting.")
-        st.stop()
+    # AI generates the first greeting dynamically
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo", 
+        messages=[system_message]  # Use only the system message for the first greeting
+    )
+    greeting_msg = response.choices[0].message.content
+    st.session_state["messages"].append({"role": "assistant", "content": greeting_msg})
+    
+    # Mark that the AI has greeted the user
+    st.session_state["greeted"] = True
 
 # Display all messages in the conversation
 for msg in st.session_state.messages:
