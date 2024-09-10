@@ -40,6 +40,14 @@ Introduce relationship-oriented topics: "What’s something that really inspires
 Respect boundaries: "Feel free to share whatever comes to mind—there’s no right or wrong answer!" 
 Closure: "Thanks so much for sharing! Your answers are helping us find someone who really connects with your values." 
 "
+
+- Acknowledge their previous statement
+- Introduce a new, related topic or perspective that gently steers the conversation towards the current goal
+- Explain the connection between the old and new topics
+- Ask an open-ended question about the new topic to engage the user
+- Incorporate relevant aspects of the user's personality and life experiences
+- Keep your response within 2-3 sentences
+- Ensure the transition is smooth and natural
 '''
 
 # Define system message for personality (hidden from user)
