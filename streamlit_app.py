@@ -66,26 +66,23 @@ if confirm_key and openai_api_key:
 
     # Ensure the AI only greets once by checking a session state variable
     if "greeted" not in st.session_state:
-        try:
-            # Initialize OpenAI client
-            openai.api_key = openai_api_key
 
-            # Generate a dynamic greeting from the AI
-            response = openai.ChatCompletion.create(
-                model="gpt-4",  # Use GPT-4 or the model you prefer
-                messages=[system_message]  # Use only the system message for the first greeting
-            )
-            greeting_msg = response.choices[0].message['content']
+        # Initialize OpenAI client
+        openai.api_key = openai_api_key
 
-            # Append the greeting to the session state
-            st.session_state["messages"].append({"role": "assistant", "content": greeting_msg})
+        # Generate a dynamic greeting from the AI
+        response = openai.ChatCompletion.create(
+            model="gpt-4",  # Use GPT-4 or the model you prefer
+            messages=[system_message]  # Use only the system message for the first greeting
+        )
+        greeting_msg = response.choices[0].message['content']
 
-            # Mark that the AI has greeted the user
-            st.session_state["greeted"] = True
+        # Append the greeting to the session state
+        st.session_state["messages"].append({"role": "assistant", "content": greeting_msg})
 
-        except openai.error.OpenAIError as e:
-            st.error(f"Error generating greeting: {str(e)}")
-            st.stop()
+        # Mark that the AI has greeted the user
+        st.session_state["greeted"] = True
+
 
 
 # Display all messages in the conversation
@@ -109,20 +106,16 @@ if st.session_state.get("api_key"):  # Only allow chat input if the API key is p
         with st.chat_message("user", avatar="👤"):
             st.write(prompt)
 
-        try:
-            # Generate AI response using the entire conversation history
-            response = openai.ChatCompletion.create(
-                model="gpt-4",  # Use GPT-4 or the model you prefer
-                messages=st.session_state["messages"]
-            )
+        # Generate AI response using the entire conversation history
+        response = openai.ChatCompletion.create(
+            model="gpt-4",  # Use GPT-4 or the model you prefer
+            messages=st.session_state["messages"]
+        )
 
-            # Extract AI's response and append to the conversation history
-            msg = response.choices[0].message['content']
-            st.session_state["messages"].append({"role": "assistant", "content": msg})
+        # Extract AI's response and append to the conversation history
+        msg = response.choices[0].message['content']
+        st.session_state["messages"].append({"role": "assistant", "content": msg})
 
-            # Display AI's response on the left with an icon
-            with st.chat_message("assistant", avatar="🤖"):
-                st.write(msg)
-
-        except openai.error.OpenAIError as e:
-            st.error(f"Error generating response: {str(e)}")
+        # Display AI's response on the left with an icon
+        with st.chat_message("assistant", avatar="🤖"):
+            st.write(msg)
