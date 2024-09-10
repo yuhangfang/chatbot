@@ -83,13 +83,10 @@ if confirm_key and openai_api_key:
             # Mark that the AI has greeted the user
             st.session_state["greeted"] = True
 
-            # Display the greeting message immediately
-            with st.chat_message("assistant", avatar="🤖"):
-                st.write(greeting_msg)
-
         except openai.error.OpenAIError as e:
             st.error(f"Error generating greeting: {str(e)}")
             st.stop()
+
 
 # Display all messages in the conversation
 for msg in st.session_state["messages"]:
