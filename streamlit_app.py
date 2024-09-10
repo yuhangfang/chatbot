@@ -1,21 +1,21 @@
-from openai import OpenAI
+import openai
 import streamlit as st
 
 # Sidebar for API key input
 with st.sidebar:
-    openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
-    "[Get an OpenAI API key](https://platform.openai.com/account/api-keys)"
-    "[View the source code](https://github.com/streamlit/llm-examples/blob/main/Chatbot.py)"
-    "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
+    st.write("## Enter OpenAI API Key")
+    openai_api_key = st.text_input("OpenAI API Key", type="password")
+    confirm_key = st.button("Confirm API Key")
 
 # Chat title and description
-st.title("💬 Chatbot")
-st.caption("🚀 A Streamlit chatbot powered by OpenAI")
+st.title("💬 Chat with Alex")
+st.caption("🚀 Your AI friend that knows you the best")
 
 personality = '''
 You are a Master of relationship and a charming person who knows how to open up people's heart extremely well. 
 Your task is to talk to the user and encourages users to open up and share their stories, feelings, and attitudes naturally 
-so that you could find the best match for user in dating. 
+so that you could find the best match for user in dating. Please be funny and don't be too serious. 
+You may tell some jokes to help the conversation relax. 
 
 You should respond in a way that acknowledges, empathizes, and encourages further sharing, 
 while keeping the conversation dynamic and personalized. 
@@ -56,53 +56,76 @@ system_message = {
     "content": personality
 }
 
-
-# Initialize message history with system personality if it's not already present
+# Initialize message history with the system message if it's not already present
 if "messages" not in st.session_state:
     st.session_state["messages"] = [system_message]
-    
-    # If this is the first interaction, generate a dynamic greeting from the AI
-    if openai_api_key:
-        client = OpenAI(api_key=openai_api_key)
-        response = client.chat.completions.create(
-            model="gpt-4", 
-            messages=[system_message]  # Use only the system message for the first greeting
-        )
-        greeting_msg = response.choices[0].message.content
-        st.session_state["messages"].append({"role": "assistant", "content": greeting_msg})
-    else:
-        st.info("Please add your OpenAI API key to generate the greeting.")
-        st.stop()
+
+# When the user confirms the API key
+if confirm_key and openai_api_key:
+    st.session_state["api_key"] = openai_api_key
+
+    # Ensure the AI only greets once by checking a session state variable
+    if "greeted" not in st.session_state:
+        try:
+            # Initialize OpenAI client
+            openai.api_key = openai_api_key
+
+            # Generate a dynamic greeting from the AI
+            response = openai.ChatCompletion.create(
+                model="gpt-4",  # Use GPT-4 or the model you prefer
+                messages=[system_message]  # Use only the system message for the first greeting
+            )
+            greeting_msg = response.choices[0].message['content']
+
+            # Append the greeting to the session state
+            st.session_state["messages"].append({"role": "assistant", "content": greeting_msg})
+
+            # Mark that the AI has greeted the user
+            st.session_state["greeted"] = True
+
+            # Display the greeting message immediately
+            with st.chat_message("assistant", avatar="🤖"):
+                st.write(greeting_msg)
+
+        except openai.error.OpenAIError as e:
+            st.error(f"Error generating greeting: {str(e)}")
+            st.stop()
 
 # Display all messages in the conversation
-for msg in st.session_state.messages:
+for msg in st.session_state["messages"]:
     if msg["role"] == "assistant":
-        st.chat_message("assistant").write(msg["content"])  # Assistant message on the left
+        # AI message on the left with a robot icon
+        with st.chat_message("assistant", avatar="🤖"):
+            st.write(msg["content"])
     elif msg["role"] == "user":
-        st.chat_message("user").write(msg["content"])  # User message on the right
+        # User message on the right with a user icon
+        with st.chat_message("user", avatar="👤"):
+            st.write(msg["content"])
 
 # Handle user input
-if prompt := st.chat_input():
-    if not openai_api_key:
-        st.info("Please add your OpenAI API key to continue.")
-        st.stop()
+if st.session_state.get("api_key"):  # Only allow chat input if the API key is provided
+    if prompt := st.chat_input("Type your message here..."):
+        # Append user's message to the conversation history
+        st.session_state["messages"].append({"role": "user", "content": prompt})
 
-    # Initialize OpenAI client
-    client = OpenAI(api_key=openai_api_key)
-    
-    # Append user's message to the conversation history
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.chat_message("user").write(prompt)  # User message on the right
+        # Display user message on the right with an icon
+        with st.chat_message("user", avatar="👤"):
+            st.write(prompt)
 
-    # Get response from OpenAI API, including the system message and conversation history
-    response = client.chat.completions.create(
-        model="gpt-4", 
-        messages=st.session_state.messages
-    )
-    
-    # Extract assistant's message and append to the conversation history
-    msg = response.choices[0].message.content
-    st.session_state.messages.append({"role": "assistant", "content": msg})
-    
-    # Display assistant's message on the left
-    st.chat_message("assistant").write(msg)
+        try:
+            # Generate AI response using the entire conversation history
+            response = openai.ChatCompletion.create(
+                model="gpt-4",  # Use GPT-4 or the model you prefer
+                messages=st.session_state["messages"]
+            )
+
+            # Extract AI's response and append to the conversation history
+            msg = response.choices[0].message['content']
+            st.session_state["messages"].append({"role": "assistant", "content": msg})
+
+            # Display AI's response on the left with an icon
+            with st.chat_message("assistant", avatar="🤖"):
+                st.write(msg)
+
+        except openai.error.OpenAIError as e:
+            st.error(f"Error generating response: {str(e)}")
