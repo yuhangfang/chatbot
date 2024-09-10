@@ -81,26 +81,33 @@ system_message = {
 # Initialize message history with system personality if it's not already present
 if "messages" not in st.session_state:
     st.session_state["messages"] = [system_message]
+
+# Check if API key is filled and AI has not greeted the user
+if openai_api_key and "greeted" not in st.session_state:
+    # Initialize OpenAI client
+    client = OpenAI(api_key=openai_api_key)
     
-    # If this is the first interaction, generate a dynamic greeting from the AI
-    if openai_api_key:
-        client = OpenAI(api_key=openai_api_key)
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo", 
-            messages=[system_message]  # Use only the system message for the first greeting
-        )
-        greeting_msg = response.choices[0].message.content
-        st.session_state["messages"].append({"role": "assistant", "content": greeting_msg})
-    else:
-        st.info("Please add your OpenAI API key to generate the greeting.")
-        st.stop()
+    # AI generates the first greeting dynamically
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo", 
+        messages=[system_message]  # Use only the system message for the first greeting
+    )
+    greeting_msg = response.choices[0].message.content
+    st.session_state["messages"].append({"role": "assistant", "content": greeting_msg})
+    
+    # Mark that the AI has greeted the user
+    st.session_state["greeted"] = True
 
 # Display all messages in the conversation
 for msg in st.session_state.messages:
     if msg["role"] == "assistant":
-        st.chat_message("assistant").write(msg["content"])  # Assistant message on the left
+        # Assistant message on the left with an icon
+        with st.chat_message("assistant", avatar="🤖"):  # AI icon and alignment to the left
+            st.write(msg["content"])
     elif msg["role"] == "user":
-        st.chat_message("user").write(msg["content"])  # User message on the right
+        # User message on the right with an icon
+        with st.chat_message("user", avatar="👤"):  # User icon and alignment to the right
+            st.write(msg["content"])
 
 # Handle user input
 if prompt := st.chat_input():
@@ -108,12 +115,12 @@ if prompt := st.chat_input():
         st.info("Please add your OpenAI API key to continue.")
         st.stop()
 
-    # Initialize OpenAI client
-    client = OpenAI(api_key=openai_api_key)
-    
     # Append user's message to the conversation history
     st.session_state.messages.append({"role": "user", "content": prompt})
-    st.chat_message("user").write(prompt)  # User message on the right
+
+    # Display user message on the right with an icon
+    with st.chat_message("user", avatar="👤"):  # User icon and alignment to the right
+        st.write(prompt)
 
     # Get response from OpenAI API, including the system message and conversation history
     response = client.chat.completions.create(
@@ -125,5 +132,6 @@ if prompt := st.chat_input():
     msg = response.choices[0].message.content
     st.session_state.messages.append({"role": "assistant", "content": msg})
     
-    # Display assistant's message on the left
-    st.chat_message("assistant").write(msg)
+    # Display assistant's message on the left with an icon
+    with st.chat_message("assistant", avatar="🤖"):  # AI icon and alignment to the left
+        st.write(msg)
