@@ -118,7 +118,7 @@ if prompt := st.chat_input():
 
     # Get response from OpenAI API, including the system message and conversation history
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo", 
+        model="gpt-4", 
         messages=st.session_state.messages
     )
     
