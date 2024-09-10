@@ -1,4 +1,4 @@
-import openai
+from openai import OpenAI
 import streamlit as st
 
 # Sidebar for API key input
@@ -6,7 +6,7 @@ with st.sidebar:
     st.write("## Enter OpenAI API Key")
     openai_api_key = st.text_input("OpenAI API Key", type="password")
     confirm_key = st.button("Confirm API Key")
-
+    
 # Chat title and description
 st.title("💬 Chat with Alex")
 st.caption("🚀 Your AI friend that knows you the best")
@@ -56,66 +56,53 @@ system_message = {
     "content": personality
 }
 
-# Initialize message history with the system message if it's not already present
+
+# Initialize message history with system personality if it's not already present
 if "messages" not in st.session_state:
     st.session_state["messages"] = [system_message]
-
-# When the user confirms the API key
-if confirm_key and openai_api_key:
-    st.session_state["api_key"] = openai_api_key
-
-    # Ensure the AI only greets once by checking a session state variable
-    if "greeted" not in st.session_state:
-
-        # Initialize OpenAI client
-        openai.api_key = openai_api_key
-
-        # Generate a dynamic greeting from the AI
-        response = openai.ChatCompletion.create(
-            model="gpt-4",  # Use GPT-4 or the model you prefer
+    
+    # If this is the first interaction, generate a dynamic greeting from the AI
+    if openai_api_key:
+        client = OpenAI(api_key=openai_api_key)
+        response = client.chat.completions.create(
+            model="gpt-4", 
             messages=[system_message]  # Use only the system message for the first greeting
         )
-        greeting_msg = response.choices[0].message['content']
-
-        # Append the greeting to the session state
+        greeting_msg = response.choices[0].message.content
         st.session_state["messages"].append({"role": "assistant", "content": greeting_msg})
-
-        # Mark that the AI has greeted the user
-        st.session_state["greeted"] = True
-
-
+    else:
+        st.info("Please add your OpenAI API key to generate the greeting.")
+        st.stop()
 
 # Display all messages in the conversation
-for msg in st.session_state["messages"]:
+for msg in st.session_state.messages:
     if msg["role"] == "assistant":
-        # AI message on the left with a robot icon
-        with st.chat_message("assistant", avatar="🤖"):
-            st.write(msg["content"])
+        st.chat_message("assistant").write(msg["content"])  # Assistant message on the left
     elif msg["role"] == "user":
-        # User message on the right with a user icon
-        with st.chat_message("user", avatar="👤"):
-            st.write(msg["content"])
+        st.chat_message("user").write(msg["content"])  # User message on the right
 
 # Handle user input
-if st.session_state.get("api_key"):  # Only allow chat input if the API key is provided
-    if prompt := st.chat_input("Type your message here..."):
-        # Append user's message to the conversation history
-        st.session_state["messages"].append({"role": "user", "content": prompt})
+if prompt := st.chat_input():
+    if not openai_api_key:
+        st.info("Please add your OpenAI API key to continue.")
+        st.stop()
 
-        # Display user message on the right with an icon
-        with st.chat_message("user", avatar="👤"):
-            st.write(prompt)
+    # Initialize OpenAI client
+    client = OpenAI(api_key=openai_api_key)
+    
+    # Append user's message to the conversation history
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.chat_message("user").write(prompt)  # User message on the right
 
-        # Generate AI response using the entire conversation history
-        response = openai.ChatCompletion.create(
-            model="gpt-4",  # Use GPT-4 or the model you prefer
-            messages=st.session_state["messages"]
-        )
-
-        # Extract AI's response and append to the conversation history
-        msg = response.choices[0].message['content']
-        st.session_state["messages"].append({"role": "assistant", "content": msg})
-
-        # Display AI's response on the left with an icon
-        with st.chat_message("assistant", avatar="🤖"):
-            st.write(msg)
+    # Get response from OpenAI API, including the system message and conversation history
+    response = client.chat.completions.create(
+        model="gpt-4", 
+        messages=st.session_state.messages
+    )
+    
+    # Extract assistant's message and append to the conversation history
+    msg = response.choices[0].message.content
+    st.session_state.messages.append({"role": "assistant", "content": msg})
+    
+    # Display assistant's message on the left
+    st.chat_message("assistant").write(msg)
